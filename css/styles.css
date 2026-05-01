@@ -14,14 +14,14 @@
   --color-fun:       #FFE66D;   /* yellow     */
 
   /* Neutral palette */
-  --color-bg:      #F5F5F5;   /* page background  */
+  --color-bg:      #ebebeb;   /* page background  */
   --color-surface: #FFFFFF;   /* card / panel     */
   --color-text:    #1A1A1A;   /* primary text     */
   --color-text-muted: #555555; /* secondary text  */
   --color-border:  #DDDDDD;   /* input borders    */
   --color-error:   #C0392B;   /* validation error */
   --color-focus:   #2563EB;   /* focus ring       */
-  --color-btn:     #2563EB;   /* submit button    */
+  --color-btn:     #6596ff;   /* submit button    */
   --color-btn-hover: #1D4ED8;
   --color-delete:  #E53E3E;
   --color-delete-hover: #C53030;
@@ -51,6 +51,80 @@
   --radius-pill: 999px;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.darkmode {
+   /* Category colours (match CATEGORY_COLORS in app.js) */
+  --color-food:      #FF6B6B;   /* coral red  */
+  --color-transport: #4ECDC4;   /* teal       */
+  --color-fun:       #FFE66D;   /* yellow     */
+
+  /* Neutral palette */
+  --color-bg:      #262626;   /* page background  */
+  --color-surface: #3d4943;   /* card / panel     */
+  --color-text:    #fefefe;   /* primary text     */
+  --color-text-muted: #c8c8c8; /* secondary text  */
+  --color-border:  #a69f9f;   /* input borders    */
+  --color-error:   #fe8373;   /* validation error */
+  --color-focus:   #a2afcb;   /* focus ring       */
+  --color-btn:     #6797ff;   /* submit button    */
+  --color-btn-hover: #1D4ED8;
+  --color-delete:  #fca7a7;
+  --color-delete-hover: #C53030;
+
+  /* Spacing scale */
+  --spacing-xs: 0.25rem;   /*  4px */
+  --spacing-sm: 0.5rem;    /*  8px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+
+  /* Typography */
+  --font-size-sm:   0.8125rem;  /* 13px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg:   1.125rem;   /* 18px */
+  --font-size-xl:   1.5rem;     /* 24px */
+  --font-size-2xl:  2rem;       /* 32px */
+  --font-size-3xl:  2.5rem;     /* 40px */
+
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 Roboto, Helvetica, Arial, sans-serif;
+  --line-height: 1.5;
+
+  /* Misc */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Theme switch button */
+#theme-switch {
+  height: 50px;
+  width: 50px;
+  padding: 10.5px;
+  border-radius: 50%;
+  background-color: #a7a7a7;
+  justify-content: center;
+  align-items: center;
+  border-color: #a7a7a7;
+  border-style: solid;
+  cursor: pointer;
+}
+
+#theme-switch svg {
+  fill: var(--color-surface)
+}
+
+#theme-switch svg:last-child{
+  display: none;
+}
+.darkmode #theme-switch svg:first-child{
+  display: none;
+}
+
+.darkmode #theme-switch svg:last-child{
+  display: block;
 }
 
 /* Universal box-sizing */
@@ -195,6 +269,42 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 1;   /* keep visible for usability */
 }
 
+/* Custom category inline input */
+.custom-category-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  align-items: center;
+}
+
+.custom-category-group input[type="text"] {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.custom-category-group button {
+  flex: 0 0 auto;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  font-weight: 600;
+  color: #ffffff;
+  background-color: var(--color-btn);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.custom-category-group button:hover {
+  background-color: var(--color-btn-hover);
+}
+
+.custom-category-group button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 /* --- Submit button --- */
 button[type="submit"] {
   display: block;
@@ -213,7 +323,7 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-  background-color: var(--color-btn-hover);
+  background-color: var(#7096ff);
 }
 
 button[type="submit"]:focus-visible {

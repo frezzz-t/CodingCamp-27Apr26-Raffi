@@ -1,6 +1,31 @@
+// dark mode function
+
+let darkmode = localStorage.getItem('darkmode')
+const themeswitch = document.getElementById('theme-switch')
+
+const enableDarkmode = () => {
+  document.body.classList.add('darkmode')
+  localStorage.setItem('darkmode', 'activate')
+}
+
+const disableDarkmode = () => {
+  document.body.classList.remove('darkmode')
+  localStorage.setItem('darkmode', 'null')
+}
+
+if(darkmode === "activate") enableDarkmode()
+
+themeswitch.addEventListener("click", () => {
+  darkmode = localStorage.getItem('darkmode')
+  darkmode !== "activate" ? enableDarkmode() : disableDarkmode()
+})
+
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 let transactions = [];
+
+// Built-in categories and their fixed colours
+const BUILTIN_CATEGORIES = ["Food", "Transport", "Fun"];
 
 const CATEGORY_COLORS = {
   Food:      "#FF6B6B",
@@ -8,7 +33,35 @@ const CATEGORY_COLORS = {
   Fun:       "#FFE66D",
 };
 
-const CATEGORIES = ["Food", "Transport", "Fun"];
+// Palette for auto-assigning colours to custom categories
+const CUSTOM_COLOR_PALETTE = [
+  "#A78BFA", "#34D399", "#FB923C", "#60A5FA",
+  "#F472B6", "#FBBF24", "#4ADE80", "#E879F9",
+  "#38BDF8", "#F87171",
+];
+
+// Custom categories added by user (persisted separately)
+let customCategories = [];
+
+// Sort state — does NOT mutate transactions array; applied at render time only
+// sortKey: "none" | "amount-asc" | "amount-desc" | "category-asc" | "category-desc"
+let sortKey = "none";
+
+function getSortedTransactions() {
+  if (sortKey === "none") return transactions.slice();
+  return transactions.slice().sort(function (a, b) {
+    if (sortKey === "amount-asc")    return a.amount - b.amount;
+    if (sortKey === "amount-desc")   return b.amount - a.amount;
+    if (sortKey === "category-asc")  return a.category.localeCompare(b.category);
+    if (sortKey === "category-desc") return b.category.localeCompare(a.category);
+    return 0;
+  });
+}
+
+// Dynamic full list — always built-in first, then custom
+function getCategories() {
+  return BUILTIN_CATEGORIES.concat(customCategories);
+}
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
@@ -27,17 +80,30 @@ function loadFromStorage() {
   }
 }
 
-/**
- * Persist the current transactions array to localStorage.
- * If storage is unavailable (e.g. private-browsing quota exceeded) the app
- * continues to work in-memory and a warning is logged to the console.
- * @param {Array} transactions - The array to persist.
- */
+function loadCustomCategoriesFromStorage() {
+  const raw = localStorage.getItem("customCategories") ?? "[]";
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("expense-tracker: could not parse custom categories; resetting to [].", e);
+    return [];
+  }
+}
+
 function saveToStorage(transactions) {
   try {
     localStorage.setItem("transactions", JSON.stringify(transactions));
   } catch (e) {
     console.warn("expense-tracker: localStorage is unavailable; data will not persist across sessions.", e);
+  }
+}
+
+function saveCustomCategoriesToStorage() {
+  try {
+    localStorage.setItem("customCategories", JSON.stringify(customCategories));
+  } catch (e) {
+    console.warn("expense-tracker: localStorage is unavailable; custom categories will not persist.", e);
   }
 }
 
@@ -49,29 +115,94 @@ function saveToStorage(transactions) {
  * Render and mutation functions are implemented in later tasks.
  */
 function init() {
-  // 6.1 — Load persisted transactions and populate the global array
+  // Load persisted data
+  customCategories = loadCustomCategoriesFromStorage();
+  // Assign colours for any custom categories already stored
+  customCategories.forEach(function (cat) {
+    if (!CATEGORY_COLORS[cat]) {
+      assignCustomColor(cat);
+    }
+  });
+
   transactions = loadFromStorage();
 
-  // 2.3, 4.4, 5.5 — Render all UI components from stored data
+  // Populate select with any persisted custom categories
+  customCategories.forEach(function (cat) {
+    addCategoryOption(cat);
+  });
+
   renderList();
   renderBalance();
   renderChart();
 
-  // 4.4 — Wire up form submission
   document.getElementById("add-form").addEventListener("submit", handleFormSubmit);
 
-  // 6.1 — Delegated click listener for delete buttons on the transaction list
   document.getElementById("transaction-list").addEventListener("click", function (event) {
     const target = event.target.closest("[data-id]");
     if (target) {
       deleteTransaction(target.dataset.id);
     }
   });
+
+  // Sort control
+  document.getElementById("sort-select").addEventListener("change", function () {
+    sortKey = this.value;
+    renderList();
+  });
+
+  // Show/hide custom category input when "Add custom…" selected
+  document.getElementById("category-select").addEventListener("change", function () {    const customGroup = document.getElementById("custom-category-group");
+    customGroup.style.display = this.value === "__custom__" ? "flex" : "none";
+  });
+
+  // "Add" button next to custom category input
+  document.getElementById("add-custom-category-btn").addEventListener("click", function () {
+    const input = document.getElementById("custom-category-input");
+    const name = input.value.trim();
+    if (!name) return;
+
+    const all = getCategories();
+    if (all.map(function (c) { return c.toLowerCase(); }).includes(name.toLowerCase())) {
+      // Already exists — just select it
+      document.getElementById("category-select").value = all.find(function (c) {
+        return c.toLowerCase() === name.toLowerCase();
+      });
+    } else {
+      // New custom category
+      customCategories.push(name);
+      assignCustomColor(name);
+      saveCustomCategoriesToStorage();
+      addCategoryOption(name);
+      document.getElementById("category-select").value = name;
+    }
+
+    // Hide custom input group
+    document.getElementById("custom-category-group").style.display = "none";
+    input.value = "";
+  });
 }
 
 document.addEventListener("DOMContentLoaded", function () {
   init();
 });
+
+// ─── Custom Category Helpers ──────────────────────────────────────────────────
+
+// Assign next available colour from palette to a new custom category
+function assignCustomColor(name) {
+  const usedCount = customCategories.indexOf(name);
+  CATEGORY_COLORS[name] = CUSTOM_COLOR_PALETTE[usedCount % CUSTOM_COLOR_PALETTE.length];
+}
+
+// Inject a new <option> into #category-select before the "Add custom…" option
+function addCategoryOption(name) {
+  const select = document.getElementById("category-select");
+  const customOpt = document.getElementById("opt-custom");
+  const opt = document.createElement("option");
+  opt.value = name;
+  opt.textContent = name;
+  select.insertBefore(opt, customOpt);
+}
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -86,19 +217,17 @@ document.addEventListener("DOMContentLoaded", function () {
 function validateForm(name, amount, category) {
   const errors = {};
 
-  // 7.1 — name must be non-empty after trimming whitespace
   if (typeof name !== "string" || name.trim() === "") {
     errors.name = "Item name is required.";
   }
 
-  // 7.2 — amount must be a finite number greater than zero
   const numericAmount = Number(amount);
   if (!isFinite(numericAmount) || numericAmount <= 0) {
     errors.amount = "Please enter an amount greater than zero.";
   }
 
-  // 7.3 — category must be one of the three allowed values
-  if (!CATEGORIES.includes(category)) {
+  // Validate against dynamic category list; "__custom__" is never a valid final value
+  if (!getCategories().includes(category)) {
     errors.category = "Please select a category.";
   }
 
@@ -241,7 +370,7 @@ function renderList() {
   const ul = document.getElementById("transaction-list");
   ul.innerHTML = "";
 
-  transactions.forEach(function (t) {
+  getSortedTransactions().forEach(function (t) {
     const li = document.createElement("li");
     li.className = "transaction-item";
 
@@ -325,14 +454,21 @@ function renderChart() {
   }
 
   // ── Compute per-category totals ──────────────────────────────────────────
+  const allCategories = getCategories();
   const totals = {};
-  CATEGORIES.forEach(function (cat) {
+  allCategories.forEach(function (cat) {
     totals[cat] = 0;
   });
 
   transactions.forEach(function (t) {
     if (totals[t.category] !== undefined) {
       totals[t.category] += t.amount;
+    } else {
+      // transaction has a category not in current list (edge case) — still show it
+      totals[t.category] = t.amount;
+      if (!CATEGORY_COLORS[t.category]) {
+        CATEGORY_COLORS[t.category] = "#aaaaaa";
+      }
     }
   });
 
@@ -341,9 +477,9 @@ function renderChart() {
   }, 0);
 
   // ── Draw arc segments ────────────────────────────────────────────────────
-  let startAngle = -Math.PI / 2; // start from the top
+  let startAngle = -Math.PI / 2;
 
-  CATEGORIES.forEach(function (cat) {
+  Object.keys(totals).forEach(function (cat) {
     const catTotal = totals[cat];
     if (catTotal <= 0) return;
 
@@ -353,7 +489,7 @@ function renderChart() {
     ctx.moveTo(cx, cy);
     ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
     ctx.closePath();
-    ctx.fillStyle = CATEGORY_COLORS[cat];
+    ctx.fillStyle = CATEGORY_COLORS[cat] || "#aaaaaa";
     ctx.fill();
 
     startAngle += sliceAngle;
@@ -362,7 +498,7 @@ function renderChart() {
   // ── Populate chart summary list ──────────────────────────────────────────
   summary.innerHTML = "";
 
-  CATEGORIES.forEach(function (cat) {
+  Object.keys(totals).forEach(function (cat) {
     const catTotal = totals[cat];
     if (catTotal <= 0) return;
 
